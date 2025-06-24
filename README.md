@@ -8,27 +8,24 @@
 
 [![IMAGE ALT TEXT HERE](https://github.com/gligen/GLIGEN/blob/master/figures/teaser_v4.png)](https://youtu.be/-MCkU7IAGKs)
 
-- Go beyond text prompt with GLIGEN: enable new capabilities on frozen text-to-image generation models to ground on various prompts, including box, keypoints and images.
-- GLIGEN’s zero-shot performance on COCO and LVIS outperforms that of existing supervised layout-to-image baselines by a large margin.
+출처 : https://github.com/gligen/GLIGEN
 
 
-## :fire: News
 
-* **[2023.03.22]** [Our fork on diffusers](https://github.com/gligen/diffusers/tree/gligen/examples/gligen) with support of text-box-conditioned generation and inpainting is released.  It is now faster, more flexible, and automatically downloads and loads model from Huggingface Hub!  Try it out!
-* **[2023.03.20]** Stay up-to-date on the line of research on *grounded image generation* such as GLIGEN, by checking out [`Computer Vision in the Wild (CVinW) Reading List`](https://github.com/Computer-Vision-in-the-Wild/CVinW_Readings#orange_book-grounded-image-generation-in-the-wild).
-* **[2023.03.19]** GLIGEN is covered by great Yannic Kilcher in his latest YouTube video on [`The biggest week in AI`](https://www.youtube.com/watch?v=YqPYDWPYXFs&t=2245s).
-* **[2023.03.05]** Gradio demo code is released at [`GLIGEN/demo`](https://github.com/gligen/GLIGEN/tree/master/demo).
-* **[2023.03.03]** Code base and checkpoints are released.
-* **[2023.02.28]** Paper is accepted to CVPR 2023.
-* **[2023.01.17]** GLIGEN paper and demo is released.
+## 수행 과정
 
-## Requirements
-We provide [dockerfile](env_docker/Dockerfile) to setup environment. 
+### 1. 가상환경 설정
+```bash
+conda create -n gligen2 python=3.8 -y
+conda activate gligen
+```
+### 2. 라이브러리 설치
+```bash
+conda install pytorch=1.13.0 torchvision=0.14.0 cudatoolkit=11.6 -c pytorch -y -c nvidia
+pip install albumentations==0.4.3 opencv-python pudb==2019.2 imageio==2.9.0 imageio-ffmpeg==0.4.2 pytorch-lightning==1.4.2 omegaconf==2.1.1 "test-tube>=0.7.5" "streamlit>=0.73.1" einops==0.3.0 torch-fidelity==0.3.0 git+https://github.com/openai/CLIP.git "protobuf~=3.20.1" torchmetrics==0.6.0 transformers==4.19.2 kornia==0.5.8 && pip uninstall -y torchtext
+```
+### 3. GLIGEN models 모델 가중치 다운로드
 
-
-## Download GLIGEN models
-
-We provide ten checkpoints for different use scenarios. All models here are based on SD-V-1.4.
 | Mode       | Modality       | Download                                                                                                       |
 |------------|----------------|----------------------------------------------------------------------------------------------------------------|
 | Generation | Box+Text       | [HF Hub](https://huggingface.co/gligen/gligen-generation-text-box/blob/main/diffusion_pytorch_model.bin)       |
@@ -42,53 +39,12 @@ We provide ten checkpoints for different use scenarios. All models here are base
 | Generation | Semantic map   | [HF Hub](https://huggingface.co/gligen/gligen-generation-sem/blob/main/diffusion_pytorch_model.bin)      |
 | Generation | Normal map     | [HF Hub](https://huggingface.co/gligen/gligen-generation-normal/blob/main/diffusion_pytorch_model.bin)      |
 
-Note that the provided checkpoint for semantic map is only trained on ADE20K dataset; the checkpoint for normal map is only trained on DIODE dataset.
+가중치(.bin) 파일 다운로드 후(가중치 파일 명이 모두 동일하기 때문에 파일명 변경 추천), 다운로드 받아 저장한 경로에 따라 'gligen_inference.py'내 meta_list의 ckpt 경로 변경
 
-## Inference: Generate images with GLIGEN
-
-We provide one script to generate images using provided checkpoints. First download models and put them in `gligen_checkpoints`. Then run
+### 4. 실행
+'gligen_inference.py' 파일 실행
 ```bash
 python gligen_inference.py
 ```
-Example samples for each checkpoint will be saved in `generation_samples`. One can check `gligen_inference.py` for more details about interface. 
+샘플 이미지는 `generation_samples`에 저장됨.
 
-
-## Training 
-
-### Grounded generation training
-
-One need to first prepare data for different grounding modality conditions. Refer [data](DATA/README.MD) for the data we used for different GLIGEN models. Once data is ready, the following command is used to train GLIGEN. (We support multi-GPUs training)
-
-```bash
-ptyhon main.py --name=your_experiment_name  --yaml_file=path_to_your_yaml_config
-```
-The `--yaml_file` is the most important argument and below we will use one example to explain key components so that one can be familiar with our code and know how to customize training on their own grounding modalities. The other args are self-explanatory by their names. The experiment will be saved in `OUTPUT_ROOT/name`
-
-One can refer `configs/flicker_text.yaml` as one example. One can see that there are 5 components defining this yaml: **diffusion**, **model**, **autoencoder**, **text_encoder**, **train_dataset_names** and **grounding_tokenizer_input**. Typecially, **diffusion**, **autoencoder** and **text_encoder** should not be changed as they are defined by Stable Diffusion. One should pay attention to following:
-
- - Within **model** we add new argument **grounding_tokenizer** which defines a network producing grounding tokens. This network will be instantized in the model. One can refer to `ldm/modules/diffusionmodules/grounding_net_example.py` for more details about defining this network.
- - **grounding_tokenizer_input** will define a network taking in batch data from dataloader and produce input for the grounding_tokenizer. In other words, it is an intermediante class between dataloader and grounding_tokenizer. One can refer `grounding_input/__init__.py` for details about defining this class.
- - **train_dataset_names** should be listing a serial of names of datasets (all datasets will be concatenated internally, thus it is useful to combine datasets for training). Each dataset name should be first registered in `dataset/catalog.py`. We have listed all dataset we used; if one needs to train GLIGEN on their own modality dataset, please don't forget first list its name there. 
-
-
-### Grounded inpainting training
-
-GLIGEN also supports inpainting training. The following command can be used:
-```bash
-ptyhon main.py --name=your_experiment_name  --yaml_file=path_to_your_yaml_config --inpaint_mode=True  --ckpt=path_to_an_adapted_model
-```
-Typecially, we first train GLIGEN on generation task (e.g., text grounded generation) and this model has 4 channels for input conv (latent space of Stable Diffusion), then we modify the saved checkpoint to 9 channels with addition 5 channels initilized with 0. This continue training can lead to faster convergence and better results. path_to_an_adapted_model refers to this modified checkpoint, `convert_ckpt.py` can be used for modifying checkpoint. **NOTE:** yaml file is the same for generation and inpainting training, one only need to change `--inpaint_mode`
-
-## Citation
-```
-@article{li2023gligen,
-  title={GLIGEN: Open-Set Grounded Text-to-Image Generation},
-  author={Li, Yuheng and Liu, Haotian and Wu, Qingyang and Mu, Fangzhou and Yang, Jianwei and Gao, Jianfeng and Li, Chunyuan and Lee, Yong Jae},
-  journal={CVPR},
-  year={2023}
-}
-```
-
-## Disclaimer
-
-The original GLIGEN was partly implemented and trained during an internship at Microsoft. This repo re-implements GLIGEN in PyTorch with university GPUs after the internship. Despite the minor implementation differences, this repo aims to reproduce the results and observations in the paper for research purposes.
