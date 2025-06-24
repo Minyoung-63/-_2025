@@ -42,7 +42,7 @@ pip install albumentations==0.4.3 opencv-python pudb==2019.2 imageio==2.9.0 imag
 가중치(.bin) 파일 다운로드 후(가중치 파일 명이 모두 동일하기 때문에 파일명 변경 추천), 다운로드 받아 저장한 경로에 따라 'gligen_inference.py'내 meta_list의 ckpt 경로 변경
 
 ### 4. 실행
-'gligen_inference.py' 파일 실행
+`gligen_inference.py`파일 실행
 ```bash
 python gligen_inference.py
 ```
